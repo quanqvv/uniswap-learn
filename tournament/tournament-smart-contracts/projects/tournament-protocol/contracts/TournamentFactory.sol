@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import {Tournament} from "./Tournament.sol";
+
 contract TournamentFactory {
     address[] public bettingTables;
 

@@ -7,7 +7,7 @@
     "scripts": {
       "start": "npx ts-node testtest.ts",
       "compile": "npx hardhat compile",
-      "deploy:testnet": "npx hardhat run --network testnet scripts/deploy-and-test.ts",
+      "deploy:testnet": "npx hardhat run --network testnet scripts/tournament-test.ts",
       "deploy:mainnet": "npx hardhat run --network mainnet scripts/deploy.ts",
       "test": "npx hardhat test",
       "deploy:test-contract": "npx hardhat run --network testnet scripts/test-contract.ts",
