@@ -4,6 +4,8 @@ import { assert, expect, use } from "chai";
 import _Web3 from "web3"
 import { parseEther } from "ethers/lib/utils";
 import { BN, constants, expectEvent, expectRevert, time } from "@openzeppelin/test-helpers";
+import { Console } from "console";
+import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 
 // import Txa from "web3"
@@ -29,7 +31,10 @@ const WBNB = artifacts.require("./WBNB.sol");
 
 const users = [acc1, acc2, acc3]
 
-
+async function showPoolInfo(pool){
+  const reserve = await pool.getReserves()
+  console.log(`Reserve0 = ${reserve[0]}, Reserve1 = ${reserve[1]}, liquditiy = ${reserve[0] * reserve[1]}`)
+}
 
 const main = async () => {
   // Compile contracts
@@ -98,8 +103,6 @@ result = await pancakeRouter.addLiquidity(
   { from: testAccount }
 );
 
-console.log(result)
-
 expectEvent.inTransaction(result.hash, tokenA, "Transfer", {
   from: testAccount,
   to: pairAC.address,
@@ -116,7 +119,26 @@ assert.equal(String(await pairAC.totalSupply()), parseEther("1000000").toString(
 assert.equal(String(await tokenA.balanceOf(pairAC.address)), parseEther("1000000").toString());
 assert.equal(String(await tokenC.balanceOf(pairAC.address)), parseEther("1000000").toString());
 
-pancakeRouter.swap()
+await showPoolInfo(pairAC)
+
+// console.log(pan)
+const amountIn = ethers.utils.parseUnits("1", 18);
+const amountOut = (await pancakeRouter.getAmountsOut(
+  amountIn,
+  [tokenA.address, tokenC.address]
+))[1];
+
+const swapResult = await pancakeRouter.swapExactTokensForTokens(
+  amountIn,
+  amountOut,
+  [tokenA.address, tokenC.address],
+  acc1,
+  deadline
+);
+
+console.log(swapResult)
+await showPoolInfo(pairAC)
+
 
 // // 1 BNB = 100 A
 // result = await pancakeRouter.addLiquidityETH(
