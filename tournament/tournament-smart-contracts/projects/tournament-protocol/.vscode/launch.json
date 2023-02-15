@@ -1,0 +1,36 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ],
+            "program": "${file}"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "contract debug",
+            "skipFiles": ["<node_internals>/**"],
+            "runtimeExecutable": "C:/Program Files/nodejs/npx",
+            "args": ["hardhat", "run" , "./scripts/deploy-and-test.ts", "--network", "testnet"],
+            "cwd": "${fileDirname}"
+        },
+        // {
+        //     "type": "node",
+        //     "name": "Debug Current TS File (ts-node)",
+        //     "request": "launch",
+        //     "command": "npx hardhat run --network testnet scripts/deploy-and-test.ts",
+        //     "cwd": "${fileDirname}"
+        // }
+    ]
+}
