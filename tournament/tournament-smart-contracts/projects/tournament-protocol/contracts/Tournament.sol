@@ -2,32 +2,91 @@
 
 pragma solidity ^0.8.0;
 
+import "./IERC20.sol";
+
 contract Tournament {
     address public owner;
-    uint256 public totalBetAmount;
-    uint256 public minimumBetAmount;
-    mapping(address => uint256) public bets;
+    uint256 public entryFee;
+    uint256 public totalPot;
+    uint256 public endTime;
+    mapping(address => uint256) public playerBets;
+    mapping(address => bool) public players;
+    IERC20 public token;
+    bool public isPublic;
+    string public tournamentName;
+    bool public isEnd = false;
 
-    event NewBet(address indexed player, uint256 betAmount);
+    event NewPlayer(address indexed player, uint256 betAmount);
+    event TournamentEnded(address winner, uint256 prize);
 
-    constructor(address _owner, uint256 _minimumBetAmount) {
+    constructor(address _owner, bool _isPublic, address _token, uint256 _entryFee, uint256 _endTime) {
         owner = _owner;
-        minimumBetAmount = _minimumBetAmount;
+        entryFee = _entryFee;
+        token = IERC20(_token);
+        isPublic = _isPublic;
+        endTime = block.timestamp + _endTime; // Set tournament end time to 1 hour from now
     }
 
-    function bet() public payable {
-        require(msg.value >= minimumBetAmount, "Bet amount is too low");
-
-        bets[msg.sender] += msg.value;
-        totalBetAmount += msg.value;
-
-        emit NewBet(msg.sender, msg.value);
+    modifier checkEnd{
+        require(block.timestamp < endTime || isEnd == true, "Tournament has ended");
+        _;
     }
 
-    function withdraw() public {
-        require(msg.sender == owner, "Only the owner can withdraw");
+    function checkEndTime() public (bool isEndTime){
+        isEndTime = block.timestamp < endTime;
+    }
 
-        payable(msg.sender).transfer(totalBetAmount);
-        totalBetAmount = 0;
+    function joinTournament() public checkEnd {
+        if (!isPublic) {
+            require(players[msg.sender], "You are not invited to this tournament");
+        }
+        require(playerBets[msg.sender] == 0, "You have already placed a bet in this tournament");
+        require(token.balanceOf(msg.sender) >= entryFee, "Insufficient token balance");
+
+        players[msg.sender] = true;
+        playerBets[msg.sender] += entryFee;
+        totalPot += entryFee;
+
+        token.transferFrom(msg.sender, address(this), entryFee);
+
+        emit NewPlayer(msg.sender, entryFee);
+    }
+
+    function endTournament() public {
+        if(!checkEndTime()){
+            require(msg.sender == owner, "Only the owner can end the tournament before end time");
+        }else{
+            require(players[msg.sender] == true, "Only member in this tournament can end");
+        }
+
+        require(totalPot > 0, "No players joined the tournament");
+
+        if(chec)
+
+        address[] memory playerAddresses = new address[](players.length);
+        uint256[] memory playerBetsArray = new uint256[](players.length);
+
+        uint256 totalBets;
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < players.length; i++) {
+            if (playerBets[players[i]] > 0) {
+                playerAddresses[index] = players[i];
+                playerBetsArray[index] = playerBets[players[i]];
+                totalBets += playerBets[players[i]];
+                index++;
+            }
+        }
+
+        require(totalBets > 0, "No players have placed bets");
+
+        uint256 randomValue = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, totalBets)));
+        uint256 winningIndex = randomValue % index;
+        address winner = playerAddresses[winningIndex];
+
+        token.transfer(winner, totalPot);
+        totalPot = 0;
+
+        emit TournamentEnded(winner, totalPot);
     }
 }
