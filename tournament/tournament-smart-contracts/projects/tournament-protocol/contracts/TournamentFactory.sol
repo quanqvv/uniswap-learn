@@ -12,8 +12,8 @@ contract TournamentFactory {
         owner = msg.sender;
     }
 
-    function getTournament(uint128 index) returns (){
-
+    function getTournament(uint128 index) public view returns (address){
+        return tournaments[index];
     }
 
     function createPublicTournament(address token, uint256 entryFee, uint256 endTime) public returns (address){
