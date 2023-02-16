@@ -4,16 +4,22 @@ import {Tournament} from "./Tournament.sol";
 
 contract TournamentFactory {
     address public owner;
+    address[] public tournaments;
 
     event NewTournament(address indexed tournamentAddress);
 
-    constructor(address _owner) {
-        owner = _owner;
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function getTournament(uint128 index) returns (){
+
     }
 
     function createPublicTournament(address token, uint256 entryFee, uint256 endTime) public returns (address){
         Tournament tournament = new Tournament(msg.sender, true, token, entryFee, endTime);
         emit NewTournament(address(tournament));
+        tournaments.push(address(tournament));
         return address(tournament);
     }
 

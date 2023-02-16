@@ -25,6 +25,7 @@ const weth = "0x7a9644B7eA39725800C9BBf1F6C6b12411f95728"
 const MockERC20 = artifacts.require("./utils/MockERC20.sol");
 const TournamentFactory = artifacts.require("./TournamentFactory.sol");
 const Tournament = artifacts.require("./Tournament.sol");
+const WBNB = artifacts.require("./WBNB.sol");
 
 const users = [acc1, acc2, acc3]
 
@@ -35,12 +36,39 @@ const main = async () => {
     console.log("Compiled contracts.");
     const networkName = network.name;
     console.log("Deploying to network:", networkName);
+
+    console.log("Deploying Token");
+    const MockERC20 = artifacts.require("./utils/MockERC20.sol");
+    const tokenA = await MockERC20.new("Token A", "TA", parseEther("10000000"), { from: acc1 });
+    const tokenC = await MockERC20.new("Token C", "TC", parseEther("10000000"), { from: acc1 });
+    const wrappedBNB = await WBNB.new({ from: acc1 });
+    console.log("Token A deployed to", tokenA.address);
+    console.log("Token WBNB deployed to", wrappedBNB.address);
+    console.log("Token C deployed to", tokenC.address);
+
   
-    console.log("TournamentFactory...");
+    console.log("Deploy TournamentFactory...");
     const TournamentFactory = await ethers.getContractFactory("TournamentFactory");
     const tournamentFactory = await TournamentFactory.deploy()
     await tournamentFactory.deployed()
-    console.log("TournamentFactory deployed to:", tournamentFactory.address)
+    console.log("TournamentFactory deployed at:", tournamentFactory.address)
+
+    console.log("Deploy Tournament...");
+    const tournamentAddress = await tournamentFactory.createPublicTournament(tokenA.address, 100, 1000)
+    const tournament = Tournament.at(tournamentAddress)
+    console.log("Tournament deployed at:", tournamentAddress)
+
+    console.log("Mint and approve all contracts")
+    for(let user of users){
+        for(let token of [tokenA, tokenC]){
+            await token.mintTokens(parseEther("2000000"), {from: user})
+            // assert.equal(String(await token.balanceOf(user)), parseEther("2000000").toString());
+        }
+
+        for(let token of [tokenA, wrappedBNB, tokenC]){
+            await token.approve(tournament.address, constants.MAX_UINT256, {from: user})
+        }
+    }
 }
 
 main()
