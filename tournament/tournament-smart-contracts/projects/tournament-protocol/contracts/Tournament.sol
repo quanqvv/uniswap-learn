@@ -17,7 +17,7 @@ contract Tournament {
     mapping(address => uint256) public playerBets;
     mapping(address => bool) public hasPlayer;
     mapping(address => bool) public invitedPlayer;
-    address[] players;
+    address[] public players;
 
     event NewPlayer(address indexed player, uint256 betAmount);
     event TournamentEnded(address winner, uint256 prize);
@@ -44,7 +44,7 @@ contract Tournament {
         isEndTime = block.timestamp < endTime;
     }
 
-    function joinTournament() public checkEnd {
+    function join() public checkEnd {
         if (!isPublic) {
             require(invitedPlayer[msg.sender], "You are not invited to this tournament");
         }
@@ -61,7 +61,7 @@ contract Tournament {
         emit NewPlayer(msg.sender, entryFee);
     }
 
-    function endTournament() public {
+    function end() public {
         if(!checkEndTime()){
             require(msg.sender == owner, "Only the owner can end the tournament before end time");
         }else{

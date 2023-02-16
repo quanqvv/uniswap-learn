@@ -29,6 +29,11 @@ const WBNB = artifacts.require("./WBNB.sol");
 
 const users = [acc1, acc2, acc3]
 
+async function showBalance(address, token, msg=""){
+  const tokenSymbol = await token.symbol()
+  console.log(`${msg} Balance token ${tokenSymbol} of address ${address} is ${await token.balanceOf(address)}`)
+}
+
 
 const main = async () => {
     // Compile contracts
@@ -43,8 +48,8 @@ const main = async () => {
     const tokenC = await MockERC20.new("Token C", "TC", parseEther("10000000"), { from: acc1 });
     const wrappedBNB = await WBNB.new({ from: acc1 });
     console.log("Token A deployed to", tokenA.address);
-    console.log("Token WBNB deployed to", wrappedBNB.address);
-    console.log("Token C deployed to", tokenC.address);
+    // console.log("Token WBNB deployed to", wrappedBNB.address);
+    // console.log("Token C deployed to", tokenC.address);
 
   
     console.log("Deploy TournamentFactory...");
@@ -54,21 +59,41 @@ const main = async () => {
     console.log("TournamentFactory deployed at:", tournamentFactory.address)
 
     console.log("Deploy Tournament...");
-    const tournamentAddress = await tournamentFactory.createPublicTournament(tokenA.address, 100, 1000)
-    const tournament = Tournament.at(tournamentAddress)
-    console.log("Tournament deployed at:", tournamentAddress)
+    await tournamentFactory.createPublicTournament(tokenA.address, 100, 1000)
+    console.log("Tournament deployed at:", await tournamentFactory.getTournament(0))
+    // console.log(await tournamentAddress.wait());
+    const tournament = await Tournament.at(await tournamentFactory.getTournament(0))
+
 
     console.log("Mint and approve all contracts")
     for(let user of users){
-        for(let token of [tokenA, tokenC]){
+        for(let token of [tokenA]){
             await token.mintTokens(parseEther("2000000"), {from: user})
             // assert.equal(String(await token.balanceOf(user)), parseEther("2000000").toString());
         }
 
-        for(let token of [tokenA, wrappedBNB, tokenC]){
+        for(let token of [tokenA]){
             await token.approve(tournament.address, constants.MAX_UINT256, {from: user})
         }
     }
+
+    console.log("Tournament info")
+    console.log("Owner " + await tournament.owner())
+
+    await showBalance(acc1, tokenA, "Before join tour");
+    await tournament.join()
+    await showBalance(acc1, tokenA, "After join tour");
+
+    await showBalance(acc2, tokenA, "Before join tour");
+    await tournament.join({ from: acc2 })
+    await showBalance(acc2, tokenA, "After join tour");
+
+    console.log("Player " + await tournament.players(0))
+    console.log("Player " + await tournament.players(1))
+
+    await tournament.end({from: acc1})
+    await showBalance(acc1, tokenA, "After end tour");
+    await showBalance(acc2, tokenA, "After end tour");
 }
 
 main()
