@@ -35,6 +35,11 @@ contract Tournament {
         }
     }
 
+    function temp() external view returns (uint a1, uint a2){
+        a1 = block.timestamp;
+        a2 = endTime;
+    }
+
     modifier checkEnd{
         require(block.timestamp < endTime || isEnd == true, "Tournament has ended");
         _;
@@ -76,7 +81,7 @@ contract Tournament {
     }
 
     function end() public {
-        if(!checkEndTime()){
+        if(checkEndTime() == false){
             require(msg.sender == owner, "Only the owner can end the tournament before end time");
         }else{
             require(hasPlayer[msg.sender], "Only player in this tournament can end");

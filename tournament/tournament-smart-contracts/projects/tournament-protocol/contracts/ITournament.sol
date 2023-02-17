@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
-contract ITournament{
-    function join() public;
-    function end() public;
+interface ITournament{
+    function join() external;
+    function end() external;
     function isEnd() external pure returns (string memory);
 }
