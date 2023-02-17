@@ -45,11 +45,6 @@ contract Tournament {
         _;
     }
 
-    modifier onlyOwner{
-        require(msg.sender != owner, "Only owner");
-        _;
-    }
-
     function checkEndTime() public view returns (bool isEndTime){
         isEndTime = block.timestamp >= endTime;
     }
@@ -112,6 +107,7 @@ contract Tournament {
 
         token.transfer(winner, totalPot);
         totalPot = 0;
+        isEnd = true;
 
         emit TournamentEnded(winner, totalPot);
     }
