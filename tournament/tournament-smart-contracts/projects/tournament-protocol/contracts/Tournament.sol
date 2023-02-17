@@ -13,6 +13,7 @@ contract Tournament {
     bool public isPublic;
     string public tournamentName;
     bool public isEnd = false;
+    address factory;
 
     mapping(address => uint256) public playerBets;
     mapping(address => bool) public hasPlayer;
@@ -48,10 +49,10 @@ contract Tournament {
         isEndTime = block.timestamp < endTime;
     }
 
-    function invite(address[] _players){
+    function invite(address[] calldata _players) public{
         require(isPublic == false, "Only invite in private tournament");
-        require(owner == msg.sender, "Only the owner can invite");
-        for(uinit256 i=0; i<_players.length; i++){
+        require(owner == msg.sender || factory == msg.sender, "Only the owner can invite");
+        for(uint256 i=0; i<_players.length; i++){
             invitedPlayer[_players[i]] = true;
         }
     }
