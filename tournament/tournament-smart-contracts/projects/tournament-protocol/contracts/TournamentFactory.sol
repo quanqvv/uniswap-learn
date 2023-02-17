@@ -37,6 +37,8 @@ contract TournamentFactory {
         Tournament tournament = new Tournament(msg.sender, false, token, entryFee, endTime);
         emit NewTournament(address(tournament));
         tournament.invite(invitedPlayers);
+        address tournamentAddress = address(tournament);
+        allTournaments.push(tournamentAddress);
         return address(tournament);
     }
 }
