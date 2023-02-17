@@ -51,14 +51,14 @@ contract Tournament {
     }
 
     function checkEndTime() public view returns (bool isEndTime){
-        isEndTime = block.timestamp < endTime;
+        isEndTime = block.timestamp >= endTime;
     }
 
-    function invite(address[] calldata _players) public{
+    function invite(address[] calldata invitedPlayers) public{
         require(isPublic == false, "Only invite in private tournament");
         require(msg.sender == owner || msg.sender == factory, "Only the owner can invite");
-        for(uint256 i=0; i<_players.length; i++){
-            invitedPlayer[_players[i]] = true;
+        for(uint256 i=0; i<invitedPlayers.length; i++){
+            invitedPlayer[invitedPlayers[i]] = true;
         }
     }
 
