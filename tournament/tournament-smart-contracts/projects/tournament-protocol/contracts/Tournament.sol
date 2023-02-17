@@ -23,11 +23,15 @@ contract Tournament {
     event TournamentEnded(address winner, uint256 prize);
 
     constructor(address _owner, bool _isPublic, address _token, uint256 _entryFee, uint256 _endTime){
+        factory = msg.sender;
         owner = _owner;
         entryFee = _entryFee;
         token = IERC20(_token);
         isPublic = _isPublic;
         endTime = block.timestamp + _endTime; // Set tournament end time to 1 hour from now
+        if(isPublic){
+            invitedPlayer[_owner] = true;
+        }
     }
 
     modifier checkEnd{
@@ -43,6 +47,15 @@ contract Tournament {
     function checkEndTime() public view returns (bool isEndTime){
         isEndTime = block.timestamp < endTime;
     }
+
+    function invite(address[] _players){
+        require(isPublic == false, "Only invite in private tournament");
+        require(owner == msg.sender, "Only the owner can invite");
+        for(uinit256 i=0; i<_players.length; i++){
+            invitedPlayer[_players[i]] = true;
+        }
+    }
+
 
     function join() public checkEnd {
         if (!isPublic) {
