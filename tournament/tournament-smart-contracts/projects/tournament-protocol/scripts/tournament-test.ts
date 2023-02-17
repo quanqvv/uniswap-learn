@@ -111,7 +111,8 @@ const main = async () => {
 
 
     console.log("\n**Private tournament info**")
-    var tournament = await createPrivateTournament({tokenAddress: tokenA.address, entryFee: 100, endTime: 5, invitedPlayer: [acc1, acc2]})
+    var endTimeDuration = 5
+    var tournament = await createPrivateTournament({tokenAddress: tokenA.address, entryFee: 100, endTime: endTimeDuration, invitedPlayer: [acc1, acc2]})
     await mintTokenAndAllowToTournamentContract(tournament)
     console.log("Owner " + await tournament.owner())
 
@@ -136,7 +137,10 @@ const main = async () => {
     // console.log("Player " + await tournament.players(1))
     // console.log("Player " + await tournament.players(2))
 
-    await new Promise(r => setTimeout(r, 1000));
+    // check endtime condition
+    const afterEndTime = (endTimeDuration + 2)  * 1000;
+    const beforeEndTime = (endTimeDuration - 2)  * 1000;
+    await new Promise(r => setTimeout(r, beforeEndTime));
 
     await tournament.end({from: acc2})
     await showBalance(acc1, tokenA, "After end tour");
