@@ -77,7 +77,26 @@ const main = async () => {
         }
     }
 
-    console.log("Tournament info")
+    console.log("**Public tournament info**")
+    console.log("Owner " + await tournament.owner())
+
+    await showBalance(acc1, tokenA, "Before join tour");
+    await tournament.join()
+    await showBalance(acc1, tokenA, "After join tour");
+
+    await showBalance(acc2, tokenA, "Before join tour");
+    await tournament.join({ from: acc2 })
+    await showBalance(acc2, tokenA, "After join tour");
+
+    console.log("Player " + await tournament.players(0))
+    console.log("Player " + await tournament.players(1))
+
+    await tournament.end({from: acc1})
+    await showBalance(acc1, tokenA, "After end tour");
+    await showBalance(acc2, tokenA, "After end tour");
+
+
+    console.log("**Private tournament info**")
     console.log("Owner " + await tournament.owner())
 
     await showBalance(acc1, tokenA, "Before join tour");

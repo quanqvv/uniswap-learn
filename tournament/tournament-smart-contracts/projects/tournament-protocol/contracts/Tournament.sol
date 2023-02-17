@@ -51,7 +51,7 @@ contract Tournament {
 
     function invite(address[] calldata _players) public{
         require(isPublic == false, "Only invite in private tournament");
-        require(owner == msg.sender || factory == msg.sender, "Only the owner can invite");
+        require(msg.sender == owner || msg.sender == factory, "Only the owner can invite");
         for(uint256 i=0; i<_players.length; i++){
             invitedPlayer[_players[i]] = true;
         }
