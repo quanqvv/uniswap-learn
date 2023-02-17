@@ -116,7 +116,6 @@ const main = async () => {
     await mintTokenAndAllowToTournamentContract(tournament)
     console.log("Owner " + await tournament.owner())
 
-    
     // show blocktimestamp and endtime console.log("test", (await tournament.temp())["0"].toString(), (await tournament.temp())["1"].toString())
 
     await showBalance(acc1, tokenA, "Before join tour");
@@ -139,8 +138,8 @@ const main = async () => {
 
     // check endtime condition
     const afterEndTime = (endTimeDuration + 2)  * 1000;
-    const beforeEndTime = (endTimeDuration - 2)  * 1000;
-    await new Promise(r => setTimeout(r, beforeEndTime));
+    const beforeEndTime = 0
+    await new Promise(r => setTimeout(r, afterEndTime));
 
     await tournament.end({from: acc2})
     await showBalance(acc1, tokenA, "After end tour");
