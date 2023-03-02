@@ -90,7 +90,13 @@ contract LuckyTournament {
         uint256 numPlayer = players.length;
         uint256 totalPrize = totalPrize;
 
-        uint256 memory randomNumbers = RandomSupporter.getRandomNumbers(n, numPlay);
+        uint120 numPrize = 2;
+        uint256 prizeValue = new 
+        uint256 memory randomNumbers = RandomSupporter.getRandomNumbers(numPrize, numPlayer);
+        for(uint256 i=0; i < numPrize; i++){
+            uint256 firstWinnerIndex = randomNumbes[i];
+            
+        }
 
         uint256 randomValue = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, play)));
         uint256 winningFirstPrizeIndex = randomValue % index;
