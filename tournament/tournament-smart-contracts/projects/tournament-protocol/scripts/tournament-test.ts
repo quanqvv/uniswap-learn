@@ -44,7 +44,7 @@ const main = async () => {
 
     console.log("Deploying Token");
     const MockERC20 = artifacts.require("./utils/MockERC20.sol");
-    const tokenA = await MockERC20.new("Token A", "TA", parseEther("10000000"), { from: acc1 });
+    const tokenA = await MockERC20.new("Token A", "TA", parseEther("0"), { from: acc1 });
     const tokenC = await MockERC20.new("Token C", "TC", parseEther("10000000"), { from: acc1 });
     const wrappedBNB = await WBNB.new({ from: acc1 });
     console.log("Token A deployed to", tokenA.address);
@@ -53,32 +53,70 @@ const main = async () => {
 
   
     console.log("Deploy TournamentFactory...");
-    const TournamentFactory = await ethers.getContractFactory("TournamentFactory");
-    const tournamentFactory = await TournamentFactory.deploy()
-    await tournamentFactory.deployed()
+    const tournamentFactory = await TournamentFactory.new()
     console.log("TournamentFactory deployed at:", tournamentFactory.address)
 
-    console.log("Deploy Tournament...");
-    await tournamentFactory.createPublicTournament(tokenA.address, 100, 1000)
-    console.log("Tournament deployed at:", await tournamentFactory.getTournament(0))
-    // console.log(await tournamentAddress.wait());
-    const tournament = await Tournament.at(await tournamentFactory.getTournament(0))
-
-
-    console.log("Mint and approve all contracts")
-    for(let user of users){
-        for(let token of [tokenA]){
-            await token.mintTokens(parseEther("2000000"), {from: user})
-            // assert.equal(String(await token.balanceOf(user)), parseEther("2000000").toString());
-        }
-
-        for(let token of [tokenA]){
-            await token.approve(tournament.address, constants.MAX_UINT256, {from: user})
-        }
+    async function createPublicTournament({tokenAddress, entryFee, endTime}) {
+      console.log("Deploy Public Tournament...");
+      var transaction = await tournamentFactory.createPublicTournament(tokenAddress, entryFee, endTime)
+      const tournament = await Tournament.at(transaction.receipt.logs[0].args.tournamentAddress)
+      console.log("Tournament deployed at:", tournament.address)
+      return tournament
     }
 
-    console.log("Tournament info")
+    async function createPrivateTournament({tokenAddress, entryFee, endTime, invitedPlayer}) {
+      console.log("Deploy Private Tournament...");
+      var transaction = await tournamentFactory.createPrivateTournament(tokenAddress, entryFee, endTime, invitedPlayer)
+      const tournament = await Tournament.at(transaction.receipt.logs[0].args.tournamentAddress)
+      console.log("Tournament deployed at:", tournament.address)
+      return tournament
+    }
+
+
+    async function mintTokenAndAllowToTournamentContract(tournament){
+      console.log("Mint and approve all contracts")
+      for(let user of users){
+          for(let token of [tokenA]){
+              await token.mintTokens(parseEther("2000000"), {from: user})
+              // assert.equal(String(await token.balanceOf(user)), parseEther("2000000").toString());
+          }
+  
+          for(let token of [tokenA]){
+              await token.approve(tournament.address, constants.MAX_UINT256, {from: user})
+          }
+      }
+    }
+
+
+
+    // console.log("\n**Public tournament info**")
+    // var tournament = await createPublicTournament({tokenAddress: tokenA.address, entryFee: 100, endTime: 1000})
+    // await mintTokenAndAllowToTournamentContract(tournament)
+    // console.log("Owner " + await tournament.owner())
+
+    // await showBalance(acc1, tokenA, "Before join tour");
+    // await tournament.join()
+    // await showBalance(acc1, tokenA, "After join tour");
+
+    // await showBalance(acc2, tokenA, "Before join tour");
+    // await tournament.join({ from: acc2 })
+    // await showBalance(acc2, tokenA, "After join tour");
+
+    // console.log("Player " + await tournament.players(0))
+    // console.log("Player " + await tournament.players(1))
+
+    // await tournament.end({from: acc1})
+    // await showBalance(acc1, tokenA, "After end tour");
+    // await showBalance(acc2, tokenA, "After end tour");
+
+
+    console.log("\n**Private tournament info**")
+    var endTimeDuration = 5
+    var tournament = await createPrivateTournament({tokenAddress: tokenA.address, entryFee: 100, endTime: endTimeDuration, invitedPlayer: [acc1, acc2]})
+    await mintTokenAndAllowToTournamentContract(tournament)
     console.log("Owner " + await tournament.owner())
+
+    // show blocktimestamp and endtime console.log("test", (await tournament.temp())["0"].toString(), (await tournament.temp())["1"].toString())
 
     await showBalance(acc1, tokenA, "Before join tour");
     await tournament.join()
@@ -87,13 +125,26 @@ const main = async () => {
     await showBalance(acc2, tokenA, "Before join tour");
     await tournament.join({ from: acc2 })
     await showBalance(acc2, tokenA, "After join tour");
+    
+    await tournament.invite([acc3], {from: acc1})
 
-    console.log("Player " + await tournament.players(0))
-    console.log("Player " + await tournament.players(1))
+    await showBalance(acc3, tokenA, "Before join tour");
+    await tournament.join({ from: acc3 })
+    await showBalance(acc3, tokenA, "After join tour");
 
-    await tournament.end({from: acc1})
+    // console.log("Player " + await tournament.players(0))
+    // console.log("Player " + await tournament.players(1))
+    // console.log("Player " + await tournament.players(2))
+
+    // check endtime condition
+    const afterEndTime = (endTimeDuration + 2)  * 1000;
+    const beforeEndTime = 0
+    await new Promise(r => setTimeout(r, afterEndTime));
+
+    await tournament.end({from: acc2})
     await showBalance(acc1, tokenA, "After end tour");
     await showBalance(acc2, tokenA, "After end tour");
+    await showBalance(acc3, tokenA, "After end tour");
 }
 
 main()

@@ -13,6 +13,7 @@ contract Tournament {
     bool public isPublic;
     string public tournamentName;
     bool public isEnd = false;
+    address factory;
 
     mapping(address => uint256) public playerBets;
     mapping(address => bool) public hasPlayer;
@@ -34,25 +35,25 @@ contract Tournament {
         }
     }
 
+    function temp() external view returns (uint a1, uint a2){
+        a1 = block.timestamp;
+        a2 = endTime;
+    }
+
     modifier checkEnd{
         require(block.timestamp < endTime || isEnd == true, "Tournament has ended");
         _;
     }
 
-    modifier onlyOwner{
-        require(msg.sender != owner, "Only owner");
-        _;
-    }
-
     function checkEndTime() public view returns (bool isEndTime){
-        isEndTime = block.timestamp < endTime;
+        isEndTime = block.timestamp >= endTime;
     }
 
-    function invite(address[] _players){
+    function invite(address[] calldata invitedPlayers) public{
         require(isPublic == false, "Only invite in private tournament");
-        require(owner == msg.sender, "Only the owner can invite");
-        for(uinit256 i=0; i<_players.length; i++){
-            invitedPlayer[_players[i]] = true;
+        require(msg.sender == owner || msg.sender == factory, "Only the owner can invite");
+        for(uint256 i=0; i<invitedPlayers.length; i++){
+            invitedPlayer[invitedPlayers[i]] = true;
         }
     }
 
@@ -75,7 +76,7 @@ contract Tournament {
     }
 
     function end() public {
-        if(!checkEndTime()){
+        if(checkEndTime() == false){
             require(msg.sender == owner, "Only the owner can end the tournament before end time");
         }else{
             require(hasPlayer[msg.sender], "Only player in this tournament can end");
@@ -106,6 +107,7 @@ contract Tournament {
 
         token.transfer(winner, totalPot);
         totalPot = 0;
+        isEnd = true;
 
         emit TournamentEnded(winner, totalPot);
     }
