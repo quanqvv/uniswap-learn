@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {Tournament} from "./Tournament.sol";
+import {LuckyTournament} from "./LuckyTournament.sol";
 
 contract TournamentFactory {
     address public feeTo;
@@ -35,6 +36,23 @@ contract TournamentFactory {
 
     function createPrivateTournament(address token, uint256 entryFee, uint256 endTime, address[] calldata invitedPlayers) external returns (address) {
         Tournament tournament = new Tournament(msg.sender, false, token, entryFee, endTime);
+        emit NewTournament(address(tournament));
+        tournament.invite(invitedPlayers);
+        address tournamentAddress = address(tournament);
+        allTournaments.push(tournamentAddress);
+        return address(tournament);
+    }
+
+    function createPublicLuckyTournament(address token, uint256 ticketPrice, uint256 endTime) external returns (address){
+        LuckyTournament tournament = new LuckyTournament(msg.sender, true, token, ticketPrice, endTime);
+        emit NewTournament(address(tournament));
+        address tournamentAddress = address(tournament);
+        allTournaments.push(tournamentAddress);
+        return address(tournament);
+    }
+
+    function createPrivateLuckyTournament(address token, uint256 ticketPrice, uint256 endTime, address[] calldata invitedPlayers) external returns (address) {
+        LuckyTournament tournament = new LuckyTournament(msg.sender, false, token, ticketPrice, endTime);
         emit NewTournament(address(tournament));
         tournament.invite(invitedPlayers);
         address tournamentAddress = address(tournament);

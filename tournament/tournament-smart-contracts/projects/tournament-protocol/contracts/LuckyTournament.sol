@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "./interfaces/IERC20.sol";
+import {ITournamentFactory} from "./ITournamentFactory.sol";
 import {RandomSupporter} from "./libraries/RandomSupporter.sol";
 
 contract LuckyTournament {
@@ -26,7 +27,8 @@ contract LuckyTournament {
     event TournamentWinner(address winner, uint256 prizeValue, uint256 prizeOrder);
 
     // config
-    uint256 public minimumPrice = 10000;
+    // totalPrize/10000/100 must be INTEGER; xx/10000 (when calculate protocolFee); xx/100 (when divide prize to winner) ==> minimumPrice >= 10000 * 100
+    uint256 public minimumPrice = 10000000; 
     uint256 public numPrize = 2; // 2 
     uint256 public protocolFeeRate = 1; // 0.01% totalPrize
     uint256 public endTourAwardRate = 1; // 0.01% totalPrize
@@ -61,38 +63,37 @@ contract LuckyTournament {
 
     function invite(address[] calldata _players) public checkEnd{
         require(isPublic == false, "Only invite in private tournament");
-        require(owner == msg.sender, "Only the owner can invite");
+        require(owner == msg.sender || factory == msg.sender, "Only the owner can invite");
         for(uint256 i=0; i<_players.length; i++){
             invitedPlayer[_players[i]] = true;
         }
     }
 
     function join(uint256 numTicket) public checkEnd {
-        uint256 tiketValue = numTicket * ticketPrice;
+        uint256 ticketValue = numTicket * ticketPrice;
         if (!isPublic) {
             require(invitedPlayer[msg.sender], "You are not invited to this tournament");
         }
-        require(token.balanceOf(msg.sender) >= tiketValue, "Insufficient token balance");
+        require(token.balanceOf(msg.sender) >= ticketValue, "Insufficient token balance");
 
         hasPlayer[msg.sender] = true;
         playerToNumTicket[msg.sender] += numTicket;
-        totalPrize += tiketValue;
+        totalPrize += ticketValue;
         players.push(msg.sender);
 
-        token.transferFrom(msg.sender, address(this), tiketValue);
+        token.transferFrom(msg.sender, address(this), ticketValue);
         emit Deposit(msg.sender, numTicket);
     }
 
     function withdrawDeposit(uint256 numTicket) public checkEnd{
         require(hasPlayer[msg.sender], "Not join to the tournament before");
         uint256 requireTicketValue = numTicket * ticketPrice;
-        uint256 availableTicketvalue = playerToNumTicket[msg.sender] * ticketPrice;
-        require(requireTicketValue > availableTicketvalue, "withdraw over available ticket");
-        token.transfer(msg.sender, requireTicketValue);
-        
+        uint256 availableTicketValue = playerToNumTicket[msg.sender] * ticketPrice;
+        require(requireTicketValue <= availableTicketValue, "withdraw over available tickets");
+
         playerToNumTicket[msg.sender] -= numTicket;
         totalPrize -= requireTicketValue;
-        if(requireTicketValue == availableTicketvalue){
+        if(requireTicketValue == availableTicketValue){
             hasPlayer[msg.sender] = false;
         }
 
@@ -109,10 +110,12 @@ contract LuckyTournament {
                 }
             }
         }
+
+        token.transfer(msg.sender, requireTicketValue);
         emit WithdrawDeposit(msg.sender, numTicket);
     }
 
-    function end() public checkEnd{
+    function end() public{
         if(!checkEndTime()){
             require(msg.sender == owner, "Only the owner can end the tournament before end time");
         }else{
@@ -129,11 +132,14 @@ contract LuckyTournament {
         uint256 endTourAward = _totalPrize * endTourAwardRate / 10000;
         uint256 nonFeeTotalPrize = _totalPrize - protocolFee - endTourAward;
 
+        token.transfer(ITournamentFactory(factory).feeTo(), protocolFee);
+        token.transfer(msg.sender, endTourAward);
+
         uint256[] memory randomNumbers = RandomSupporter.getRandomNumbers(numPrize, numPlayer);
         for(uint256 prizeOrder=0; prizeOrder < numPrize; prizeOrder++){
             uint256 winnerIndex = randomNumbers[prizeOrder];
             address winner = players[winnerIndex];
-            uint256 prizeValue = nonFeeTotalPrize * prizeValueRates[prizeOrder];
+            uint256 prizeValue = nonFeeTotalPrize * prizeValueRates[prizeOrder] / 100;
             token.transfer(winner, prizeValue);
             emit TournamentWinner(winner, prizeValue, prizeOrder + 1);
         }

@@ -1,8 +1,7 @@
 pragma solidity ^0.8.0;
 
 library RandomSupporter{
-
-    function getRandomNumbers(uint256 n, uint256 range) public view returns (uint256[] memory) {
+    function getRandomNumbers(uint256 n, uint256 range) internal view returns (uint256[] memory) {
         require(n <= range, "Cannot generate more unique numbers than the range allows");
         uint256[] memory numbers = new uint256[](n);
         uint256 count = 0;

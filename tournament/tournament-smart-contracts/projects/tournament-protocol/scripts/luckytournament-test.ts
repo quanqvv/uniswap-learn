@@ -25,6 +25,7 @@ const weth = "0x7a9644B7eA39725800C9BBf1F6C6b12411f95728"
 const MockERC20 = artifacts.require("./utils/MockERC20.sol");
 const TournamentFactory = artifacts.require("./TournamentFactory.sol");
 const Tournament = artifacts.require("./Tournament.sol");
+const LuckyTournament = artifacts.require("./LuckyTournament.sol");
 const WBNB = artifacts.require("./WBNB.sol");
 
 const users = [acc1, acc2, acc3]
@@ -56,22 +57,21 @@ const main = async () => {
     const tournamentFactory = await TournamentFactory.new()
     console.log("TournamentFactory deployed at:", tournamentFactory.address)
 
-    async function createPublicTournament({tokenAddress, entryFee, endTime}) {
+    async function createPublicLuckyTournament({tokenAddress, ticketPrice, endTime}) {
       console.log("Deploy Public Tournament...");
-      var transaction = await tournamentFactory.createPublicTournament(tokenAddress, entryFee, endTime)
-      const tournament = await Tournament.at(transaction.receipt.logs[0].args.tournamentAddress)
+      var transaction = await tournamentFactory.createPublicLuckyTournament(tokenAddress, ticketPrice, endTime)
+      const tournament = await LuckyTournament.at(transaction.receipt.logs[0].args.tournamentAddress)
       console.log("Tournament deployed at:", tournament.address)
       return tournament
     }
 
-    async function createPrivateTournament({tokenAddress, entryFee, endTime, invitedPlayer}) {
+    async function createPrivateLuckyTournament({tokenAddress, ticketPrice, endTime, invitedPlayer}) {
       console.log("Deploy Private Tournament...");
-      var transaction = await tournamentFactory.createPrivateTournament(tokenAddress, entryFee, endTime, invitedPlayer)
-      const tournament = await Tournament.at(transaction.receipt.logs[0].args.tournamentAddress)
+      var transaction = await tournamentFactory.createPrivateLuckyTournament(tokenAddress, ticketPrice, endTime, invitedPlayer)
+      const tournament = await LuckyTournament.at(transaction.receipt.logs[0].args.tournamentAddress)
       console.log("Tournament deployed at:", tournament.address)
       return tournament
     }
-
 
     async function mintTokenAndAllowToTournamentContract(tournament){
       console.log("Mint and approve all contracts")
@@ -111,35 +111,52 @@ const main = async () => {
 
 
     console.log("\n**Private tournament info**")
-    var endTimeDuration = 5
-    var tournament = await createPrivateTournament({tokenAddress: tokenA.address, entryFee: 100, endTime: endTimeDuration, invitedPlayer: [acc1, acc2]})
+    var endTimeDuration = 10
+    var tournament = await createPrivateLuckyTournament({tokenAddress: tokenA.address, ticketPrice: 10000000, endTime: endTimeDuration, invitedPlayer: [acc1, acc2]})
     await mintTokenAndAllowToTournamentContract(tournament)
     console.log("Owner " + await tournament.owner())
 
     // show blocktimestamp and endtime console.log("test", (await tournament.temp())["0"].toString(), (await tournament.temp())["1"].toString())
 
+    const ONE_TICKET = 1
+    const TWO_TICKET = 2
+    const THREE_TICKET = 3
+    const FOUR_TICKET = 4
+    const FIVE_TICKET = 5
+
     await showBalance(acc1, tokenA, "Before join tour");
-    await tournament.join()
+    await tournament.join(ONE_TICKET)
+    await showBalance(acc1, tokenA, "After join tour");
+
+    await showBalance(acc1, tokenA, "Before join tour");
+    await tournament.join(THREE_TICKET)
     await showBalance(acc1, tokenA, "After join tour");
 
     await showBalance(acc2, tokenA, "Before join tour");
-    await tournament.join({ from: acc2 })
+    await tournament.join(TWO_TICKET, { from: acc2 })
     await showBalance(acc2, tokenA, "After join tour");
     
     await tournament.invite([acc3], {from: acc1})
 
     await showBalance(acc3, tokenA, "Before join tour");
-    await tournament.join({ from: acc3 })
+    await tournament.join(FIVE_TICKET, { from: acc3 })
     await showBalance(acc3, tokenA, "After join tour");
+
+    await showBalance(acc3, tokenA, "Before withdrawDeposit");
+    await tournament.withdrawDeposit(ONE_TICKET, { from: acc3 })
+    await showBalance(acc3, tokenA, "After withdrawDeposit");
+
+    // console.log("try withdraw deposit")
+
 
     // console.log("Player " + await tournament.players(0))
     // console.log("Player " + await tournament.players(1))
     // console.log("Player " + await tournament.players(2))
 
     // check endtime condition
-    const afterEndTime = (endTimeDuration + 2)  * 1000;
-    const beforeEndTime = 0
-    await new Promise(r => setTimeout(r, afterEndTime));
+    // const afterEndTime = (endTimeDuration + 2)  * 1000;
+    // const beforeEndTime = 0
+    // await new Promise(r => setTimeout(r, afterEndTime));
 
     await tournament.end({from: acc2})
     await showBalance(acc1, tokenA, "After end tour");
