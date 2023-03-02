@@ -14,17 +14,29 @@ contract LuckyTournament {
     bool public isPublic;
     string public tournamentName;
     bool public isEnd = false;
+    address factory;
 
     mapping(address => uint256) public playerToNumTicket;
     mapping(address => bool) public hasPlayer;
     mapping(address => bool) public invitedPlayer;
     address[] public players;
 
-    event Deposit(address indexed player, uint256 num);
-    event TournamentEnded(address indexed winner, uint256 prize);
-    event CancelDeposit(address indexed player, uint256 numTiket);
+    event Deposit(address player, uint256 numTicket);
+    event WithdrawDeposit(address player, uint256 numTicket);
+    event TournamentWinner(address winner, uint256 prizeValue, uint256 prizeOrder);
+
+    // config
+    uint256 public minimumPrice = 10000;
+    uint256 public numPrize = 2; // 2 
+    uint256 public protocolFeeRate = 1; // 0.01% totalPrize
+    uint256 public endTourAwardRate = 1; // 0.01% totalPrize
+    uint256[] public prizeValueRates = [70, 30]; // firstPrize = 70% totalPrize, secondPrize = 30% totalPrize
+
+
+    // event TournamentEnded(address winner, uint256 prize);
 
     constructor(address _owner, bool _isPublic, address _token, uint256 _ticketPrice, uint256 _endTime){
+        require(_ticketPrice >= minimumPrice, "Ticket price is too small");
         factory = msg.sender;
         owner = _owner;
         ticketPrice = _ticketPrice;
@@ -50,35 +62,55 @@ contract LuckyTournament {
         isEndTime = block.timestamp < endTime;
     }
 
-    function invite(address[] _players){
+    function invite(address[] calldata _players) public checkEnd{
         require(isPublic == false, "Only invite in private tournament");
         require(owner == msg.sender, "Only the owner can invite");
-        for(uinit256 i=0; i<_players.length; i++){
+        for(uint256 i=0; i<_players.length; i++){
             invitedPlayer[_players[i]] = true;
         }
     }
 
     function join(uint256 numTicket) public checkEnd {
+        uint256 tiketValue = numTicket * ticketPrice;
         if (!isPublic) {
             require(invitedPlayer[msg.sender], "You are not invited to this tournament");
         }
-        require(token.balanceOf(msg.sender) >= ticketPrice, "Insufficient token balance");
+        require(token.balanceOf(msg.sender) >= tiketValue, "Insufficient token balance");
 
         hasPlayer[msg.sender] = true;
         playerToNumTicket[msg.sender] += numTicket;
-        totalPrize += (numTicket * ticketPrice);
+        totalPrize += tiketValue;
         players.push(msg.sender);
 
-        token.transferFrom(msg.sender, address(this), ticketPrice);
-
-        emit Deposit(msg.sender, );
+        token.transferFrom(msg.sender, address(this), tiketValue);
+        emit Deposit(msg.sender, numTicket);
     }
 
-    function cancelDeposit() public {
-        token.transferFrom(this, msg.sender, ticketPrice);
+    function withdrawDeposit(uint256 numTicket) public checkEnd{
+        require(hasPlayer[msg.sender], "Not join to the tournament before");
+        uint256 requireTicketValue = numTicket * ticketPrice;
+        uint256 availableTicketvalue = playerToNumTicket[msg.sender] * ticketPrice;
+        require(requireTicketValue > availableTicketvalue, "withdraw over available ticket");
+        token.transfer(msg.sender, requireTicketValue);
+        
+        playerToNumTicket[msg.sender] -= numTicket;
+        totalPrize -= requireTicketValue;
+        if(requireTicketValue == availableTicketvalue){
+            hasPlayer[msg.sender] = false;
+        }
+        // not optimized when delete ticket
+        for(uint256 ticket; ticket < numTicket; ticket++){
+            for(uint256 i=0; i<players.length; i++){
+                if(players[i] == msg.sender){
+                    delete players[i];
+                }
+            }
+
+        }
+        emit WithdrawDeposit(msg.sender, numTicket);
     }
 
-    function end() public {
+    function end() public checkEnd{
         if(!checkEndTime()){
             require(msg.sender == owner, "Only the owner can end the tournament before end time");
         }else{
@@ -87,28 +119,22 @@ contract LuckyTournament {
 
         require(totalPrize > 0, "No players joined the tournament");
 
+        // save to local for avoid access contract state
         uint256 numPlayer = players.length;
-        uint256 totalPrize = totalPrize;
+        uint256 _totalPrize = totalPrize;
 
-        uint120 numPrize = 2;
-        uint256 prizeValue = new 
-        uint256 memory randomNumbers = RandomSupporter.getRandomNumbers(numPrize, numPlayer);
-        for(uint256 i=0; i < numPrize; i++){
-            uint256 firstWinnerIndex = randomNumbes[i];
-            
+        uint256 protocolFee = _totalPrize * protocolFeeRate / 10000;
+        uint256 endTourAward = _totalPrize * endTourAwardRate / 10000;
+        uint256 nonFeeTotalPrize = _totalPrize - protocolFee - endTourAward;
+
+        uint256[] memory randomNumbers = RandomSupporter.getRandomNumbers(numPrize, numPlayer);
+        for(uint256 prizeOrder=0; prizeOrder < numPrize; prizeOrder++){
+            uint256 winnerIndex = randomNumbers[prizeOrder];
+            address winner = players[winnerIndex];
+            uint256 prizeValue = nonFeeTotalPrize * prizeValueRates[prizeOrder];
+            token.transfer(winner, prizeValue);
+            emit TournamentWinner(winner, prizeValue, prizeOrder + 1);
         }
-
-        uint256 randomValue = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, play)));
-        uint256 winningFirstPrizeIndex = randomValue % index;
-        address winnerFistPrize = playerAddresses[winningFirstPrizeIndex];
-
-        uint256 randomValue = uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, play)));
-        uint256 winningFirstPrizeIndex = randomValue % index;
-        address winnerFistPrize = playerAddresses[winningFirstPrizeIndex];
-
-        token.transfer(winner, totalPrize);
-        totalPrize = 0;
-
-        emit TournamentEnded(winner, totalPrize);
+        isEnd = true;
     }
 }

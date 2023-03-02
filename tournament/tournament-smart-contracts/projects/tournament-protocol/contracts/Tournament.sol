@@ -57,7 +57,6 @@ contract Tournament {
         }
     }
 
-
     function join() public checkEnd {
         if (!isPublic) {
             require(invitedPlayer[msg.sender], "You are not invited to this tournament");
