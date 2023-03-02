@@ -32,9 +32,6 @@ contract LuckyTournament {
     uint256 public endTourAwardRate = 1; // 0.01% totalPrize
     uint256[] public prizeValueRates = [70, 30]; // firstPrize = 70% totalPrize, secondPrize = 30% totalPrize
 
-
-    // event TournamentEnded(address winner, uint256 prize);
-
     constructor(address _owner, bool _isPublic, address _token, uint256 _ticketPrice, uint256 _endTime){
         require(_ticketPrice >= minimumPrice, "Ticket price is too small");
         factory = msg.sender;
@@ -98,14 +95,19 @@ contract LuckyTournament {
         if(requireTicketValue == availableTicketvalue){
             hasPlayer[msg.sender] = false;
         }
-        // not optimized when delete ticket
+
+        uint256 i = 0;
         for(uint256 ticket; ticket < numTicket; ticket++){
-            for(uint256 i=0; i<players.length; i++){
+            for(; i<players.length; i++){
                 if(players[i] == msg.sender){
-                    delete players[i];
+                    // Array only delete element (last element) via pop. So, will assign last element to i for keeping last element, then delete last element
+                    if(i < players.length - 1){
+                        players[i] = players[players.length - 1];
+                    }
+                    players.pop();
+                    break;
                 }
             }
-
         }
         emit WithdrawDeposit(msg.sender, numTicket);
     }
